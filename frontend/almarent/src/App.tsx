@@ -4,6 +4,11 @@ import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Profile } from './pages/Profile';
+import { Favorites } from './pages/Favorites';
+import { Chat } from './pages/Chat';
+import { CreateListing } from './pages/CreateListing';
+import { ListingDetail } from './pages/ListingDetail';
 
 function App() {
   return (
@@ -14,6 +19,11 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/favorites" element={<Favorites />} />
+          <Route path="/chats" element={<Chat />} />
+          <Route path="/listings/create" element={<CreateListing />} />
+          <Route path="/listings/:id" element={<ListingDetail />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

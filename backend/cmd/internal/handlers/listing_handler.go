@@ -3,9 +3,11 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"github.com/gin-gonic/gin"
+
 	"almarent/internal/models"
 	"almarent/internal/repository"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ListingHandler struct {
@@ -81,8 +83,7 @@ func (h *ListingHandler) Update(c *gin.Context) {
 }
 
 func (h *ListingHandler) Delete(c *gin.Context) {
-	ownerID := c.GetString("user_id")
-	if err := h.repo.Delete(c.Request.Context(), c.Param("id"), ownerID); err != nil {
+	if err := h.repo.Delete(c.Request.Context(), c.Param("id"), c.GetString("user_id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

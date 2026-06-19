@@ -1,33 +1,40 @@
-import { useEffect, useState } from 'react';
-import { getListings, type ListingFilters } from '../api/listings';
-import { type Listing } from '../types';
-import { ListingCard } from '../components/ListingCard';
-import { FilterPanel } from '../components/FilterPanel';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { login } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
-export const Home = () => {
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
+export const Login = () => {
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const { login: authLogin } = useAuth();
+  const navigate = useNavigate();
 
-  const fetchListings = async (filters: ListingFilters = {}) => {
-    setLoading(true);
-    const data = await getListings(filters);
-    setListings(data || []);
-    setLoading(false);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data = await login(form);
+      authLogin(data.token, data.user);
+      navigate('/');
+    } catch {
+      setError('Неверный email или пароль');
+    }
   };
 
-  useEffect(() => { fetchListings(); }, []);
-
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem' }}>Аренда жилья в Алматы</h1>
-      <FilterPanel onChange={fetchListings} />
-      {loading ? (
-        <p>Загрузка...</p>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {listings.map(l => <ListingCard key={l.id} listing={l} />)}
-        </div>
-      )}
+    <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', border: '1px solid #e5e7eb', borderRadius: '12px' }}>
+      <h2 style={{ marginBottom: '1.5rem' }}>Вход</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <input type="email" placeholder="Email" value={form.email}
+          onChange={e => setForm({ ...form, email: e.target.value })}
+          style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+        <input type="password" placeholder="Пароль" value={form.password}
+          onChange={e => setForm({ ...form, password: e.target.value })}
+          style={{ padding: '0.75rem', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+        <button type="submit" style={{ padding: '0.75rem', borderRadius: '8px', background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+          Войти
+        </button>
+      </form>
     </div>
   );
 };

@@ -2,24 +2,25 @@ package main
 
 import (
 	"log"
+
 	"almarent/internal/config"
-	"almarent/internal/db"
-	"almarent/internal/redis"
+	mydb "almarent/internal/db"
+	myredis "almarent/internal/redis"
 	"almarent/internal/router"
 )
 
 func main() {
 	cfg := config.Load()
 
-	database, err := db.Connect(cfg.DatabaseURL)
+	database, err := mydb.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal("DB connect error:", err)
+		log.Fatal("DB error:", err)
 	}
 	defer database.Close()
 
-	rdb := redis.Connect(cfg.RedisURL)
+	rdb := myredis.Connect(cfg.RedisURL)
 
-	r := router.Setup(database, rdb)
-	log.Printf("Server running on port %s", cfg.Port)
+	r := router.Setup(database, rdb, cfg)
+	log.Printf("Server on :%s", cfg.Port)
 	r.Run(":" + cfg.Port)
 }

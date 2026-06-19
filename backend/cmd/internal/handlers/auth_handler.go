@@ -1,13 +1,17 @@
 package handlers
 
+
 import (
+	"fmt"
 	"net/http"
 	"time"
+
+	"almarent/internal/models"
+	"almarent/internal/repository"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
-	"almarent/internal/models"
-	"almarent/internal/repository"
 )
 
 type AuthHandler struct {
@@ -31,18 +35,23 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	hash, _ := bcrypt.GenerateFromPassword([]byte(input.Password), 12)
-
-	user, err := h.userRepo.Create(c.Request.Context(), &models.User{
-		Name:         input.Name,
-		Email:        input.Email,
-		PasswordHash: string(hash),
-		Role:         input.Role,
-	})
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), 12)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
 		return
 	}
+
+	user, err := h.userRepo.Create(c.Request.Context(), &models.User{
+    Name:         input.Name,
+    Email:        input.Email,
+    PasswordHash: string(hash),
+    Role:         input.Role,
+})
+if err != nil {
+    fmt.Println("REGISTER ERROR:", err)
+    c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+    return
+}
 
 	token := h.generateToken(user)
 	c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
@@ -76,7 +85,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) generateToken(user *models.User) string {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
-		"role":    user.Role,
+		"role":    string(user.Role),
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
 	token, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(h.jwtSecret))
