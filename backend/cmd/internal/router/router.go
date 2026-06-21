@@ -15,16 +15,23 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
+    allowedOrigins := map[string]bool{
+        "http://localhost:5173":      true,
+        "https://almarent.vercel.app": true,
+    }
+    origin := c.Request.Header.Get("Origin")
+    if allowedOrigins[origin] {
+        c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+    }
+    c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+    c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+    if c.Request.Method == "OPTIONS" {
+        c.AbortWithStatus(204)
+        return
+    }
+    c.Next()
+})
 
 	r.Static("/uploads", "./uploads")
 
