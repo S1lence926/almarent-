@@ -16,6 +16,7 @@ type Listing struct {
 	HasWifi      bool      `json:"has_wifi" db:"has_wifi"`
 	HasWasher    bool      `json:"has_washer" db:"has_washer"`
 	IsActive     bool      `json:"is_active" db:"is_active"`
+	Photos       []string  `json:"photos" db:"-"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }

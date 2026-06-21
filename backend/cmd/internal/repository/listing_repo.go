@@ -62,22 +62,49 @@ func (r *ListingRepo) GetAll(ctx context.Context, f ListingFilter) ([]models.Lis
 
 	var listings []models.Listing
 	err := r.db.SelectContext(ctx, &listings, query, args...)
-	return listings, err
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range listings {
+		photos, perr := r.getPhotos(ctx, listings[i].ID)
+		if perr == nil {
+			listings[i].Photos = photos
+		}
+	}
+
+	return listings, nil
 }
 
 func (r *ListingRepo) GetByID(ctx context.Context, id string) (*models.Listing, error) {
-	l := &models.Listing{}
-	err := r.db.GetContext(ctx, l, "SELECT * FROM listings WHERE id = $1", id)
-	return l, err
+	listing := &models.Listing{}
+	err := r.db.GetContext(ctx, listing, "SELECT * FROM listings WHERE id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	photos, err := r.getPhotos(ctx, listing.ID)
+	if err == nil {
+		listing.Photos = photos
+	}
+
+	return listing, nil
+}
+
+func (r *ListingRepo) getPhotos(ctx context.Context, listingID string) ([]string, error) {
+	var urls []string
+	err := r.db.SelectContext(ctx, &urls,
+		"SELECT url FROM listing_photos WHERE listing_id = $1 ORDER BY is_main DESC", listingID)
+	return urls, err
 }
 
 func (r *ListingRepo) Create(ctx context.Context, l *models.Listing) (*models.Listing, error) {
+	query := `INSERT INTO listings
+	          (owner_id, title, description, price, district, address, rooms, floor, has_furniture, has_wifi, has_washer)
+	          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+	          RETURNING *`
 	result := &models.Listing{}
-	err := r.db.QueryRowxContext(ctx,
-		`INSERT INTO listings
-		 (owner_id, title, description, price, district, address, rooms, floor, has_furniture, has_wifi, has_washer)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-		 RETURNING *`,
+	err := r.db.QueryRowxContext(ctx, query,
 		l.OwnerID, l.Title, l.Description, l.Price,
 		l.District, l.Address, l.Rooms, l.Floor,
 		l.HasFurniture, l.HasWifi, l.HasWasher,

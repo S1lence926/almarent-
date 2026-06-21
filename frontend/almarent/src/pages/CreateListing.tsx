@@ -18,26 +18,31 @@ export const CreateListing = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    try {
-      const listing = await createListing({
-        ...form,
-        price: Number(form.price),
-        rooms: Number(form.rooms),
-        floor: Number(form.floor),
-      }, token);
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!token) return;
+  try {
+    const listing = await createListing({
+      ...form,
+      price: Number(form.price),
+      rooms: Number(form.rooms),
+      floor: Number(form.floor),
+    }, token);
 
-      for (let i = 0; i < photos.length; i++) {
-        await attachPhotoToListing(listing.id, photos[i], i === 0, token);
-      }
+    console.log('Created listing:', listing);
+    console.log('Photos to attach:', photos);
 
-      navigate('/');
-    } catch {
-      setError('Не удалось создать объявление');
+    for (let i = 0; i < photos.length; i++) {
+      console.log('Attaching photo', photos[i], 'to listing', listing.id);
+      await attachPhotoToListing(listing.id, photos[i], i === 0, token);
     }
-  };
+
+    navigate('/');
+  } catch (err) {
+    console.error('CREATE LISTING ERROR:', err);
+    setError('Не удалось создать объявление');
+  }
+};
 
   return (
     <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -53,6 +54,7 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 func (h *ListingHandler) Create(c *gin.Context) {
 	var input models.Listing
 	if err := c.ShouldBindJSON(&input); err != nil {
+		fmt.Println("BIND ERROR:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -60,6 +62,7 @@ func (h *ListingHandler) Create(c *gin.Context) {
 
 	listing, err := h.repo.Create(c.Request.Context(), &input)
 	if err != nil {
+		fmt.Println("CREATE LISTING ERROR:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -31,6 +31,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Role     models.Role `json:"role" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
+		fmt.Println("REGISTER BIND ERROR:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

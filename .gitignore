@@ -1,0 +1,6 @@
+backend/cmd/uploads/*
+!backend/cmd/uploads/.gitkeep
+backend/cmd/.env
+frontend/almarent/node_modules/
+frontend/almarent/.env
+frontend/almarent/dist/

@@ -1,15 +1,34 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getListing } from '../api/listings';
+import { startChat } from '../api/chat';
 import type { Listing } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export const ListingDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { token, isAuthenticated } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (id) getListing(id).then(setListing);
   }, [id]);
+
+  const handleContact = async () => {
+    if (!isAuthenticated || !token) {
+      navigate('/login');
+      return;
+    }
+    if (!listing) return;
+    try {
+      const chat = await startChat(listing.id, token);
+      navigate(`/chats/${chat.id}`);
+    } catch {
+      setError('Не удалось начать чат');
+    }
+  };
 
   if (!listing) return <p style={{ padding: '2rem' }}>Загрузка...</p>;
 
@@ -19,7 +38,8 @@ export const ListingDetail = () => {
       <p style={{ color: '#6b7280' }}>{listing.district}, {listing.address}</p>
       <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563eb' }}>{listing.price.toLocaleString()} ₸/мес</p>
       <p>{listing.description}</p>
-      <button style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <button onClick={handleContact} style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', background: '#2563eb', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
         Связаться с арендодателем
       </button>
     </div>

@@ -31,10 +31,12 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 	userRepo := repository.NewUserRepo(db)
 	listingRepo := repository.NewListingRepo(db)
 	photoRepo := repository.NewPhotoRepo(db)
+	chatRepo := repository.NewChatRepo(db)
 
 	authHandler := handlers.NewAuthHandler(userRepo, cfg.JWTSecret)
 	listingHandler := handlers.NewListingHandler(listingRepo)
 	photoHandler := handlers.NewPhotoHandler(photoRepo)
+	chatHandler := handlers.NewChatHandler(chatRepo, listingRepo)
 
 	api := r.Group("/api")
 	{
@@ -59,6 +61,11 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 			protected.DELETE("/listings/:id", listingHandler.Delete)
 			protected.POST("/upload", handlers.UploadPhoto)
 			protected.POST("/listings/:id/photos", photoHandler.Add)
+
+			protected.POST("/chats", chatHandler.StartChat)
+			protected.GET("/chats", chatHandler.GetMyChats)
+			protected.GET("/chats/:id/messages", chatHandler.GetMessages)
+			protected.POST("/chats/:id/messages", chatHandler.SendMessage)
 		}
 	}
 
