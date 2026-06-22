@@ -15,7 +15,9 @@ export const Chat = () => {
   const [chats, setChats] = useState<ChatItem[]>([]);
 
   useEffect(() => {
-    if (token) getMyChats(token).then(setChats);
+    if (token) {
+      getMyChats(token).then(data => setChats(data || []));
+    }
   }, [token]);
 
   return (

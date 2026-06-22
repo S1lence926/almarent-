@@ -17,14 +17,16 @@ export const getMyChats = async (token: string) => {
   const res = await fetch(`${API}/chats`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 };
 
 export const getMessages = async (chatId: string, token: string) => {
   const res = await fetch(`${API}/chats/${chatId}/messages`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 };
 
 export const sendMessage = async (chatId: string, content: string, token: string) => {
