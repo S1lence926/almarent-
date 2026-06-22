@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import type { Listing } from '../types';
 import { ListingCard } from '../components/ListingCard';
+import { getMyFavorites } from '../api/favorites';
+import { useAuth } from '../context/AuthContext';
 
 export const Favorites = () => {
-  const [listings] = useState<Listing[]>([]);
+  const { token } = useAuth();
+  const [listings, setListings] = useState<Listing[]>([]);
 
   useEffect(() => {
-    // TODO: подключить API избранного
-  }, []);
+    if (token) getMyFavorites(token).then(setListings);
+  }, [token]);
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
