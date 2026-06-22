@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
+	"almarent/internal/models"
 	"almarent/internal/repository"
 
 	"github.com/gin-gonic/gin"
 )
-
 type FavoriteHandler struct {
 	repo        *repository.FavoriteRepo
 	listingRepo *repository.ListingRepo
@@ -47,9 +47,9 @@ func (h *FavoriteHandler) GetMyFavorites(c *gin.Context) {
 		return
 	}
 	if listings == nil {
-    c.JSON(http.StatusOK, []map[string]interface{}{})
-    return
-}
+		listings = []models.Listing{}
+	}
+	c.JSON(http.StatusOK, listings)
 }
 
 func (h *FavoriteHandler) Check(c *gin.Context) {
