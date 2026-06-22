@@ -34,17 +34,15 @@ export const Navbar = () => {
           <>
             <Link to="/favorites" style={{ color: 'var(--ink-soft)' }}>Избранное</Link>
             <Link to="/chats" style={{ color: 'var(--ink-soft)' }}>Чаты</Link>
-            {user?.role === 'landlord' && (
-              <Link to="/listings/create" style={{
-                background: 'var(--terracotta)',
-                color: '#fff',
-                padding: '0.55rem 1.1rem',
-                borderRadius: '999px',
-                fontWeight: 500,
-              }}>
-                + Объявление
-              </Link>
-            )}
+            <Link to="/listings/create" style={{
+              background: 'var(--terracotta)',
+              color: '#fff',
+              padding: '0.55rem 1.1rem',
+              borderRadius: '999px',
+              fontWeight: 500,
+            }}>
+              + Объявление
+            </Link>
             <Link to="/profile" style={{
               width: '36px',
               height: '36px',
