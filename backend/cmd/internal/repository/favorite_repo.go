@@ -39,7 +39,18 @@ func (r *FavoriteRepo) GetByUser(ctx context.Context, userID string) ([]models.L
 		 INNER JOIN favorites f ON f.listing_id = l.id
 		 WHERE f.user_id = $1`, userID,
 	)
-	return listings, err
+	if err != nil {
+		return nil, err
+	}
+	for i := range listings {
+		var urls []string
+		r.db.SelectContext(ctx, &urls,
+			"SELECT url FROM listing_photos WHERE listing_id = $1 ORDER BY is_main DESC",
+			listings[i].ID,
+		)
+		listings[i].Photos = urls
+	}
+	return listings, nil
 }
 
 func (r *FavoriteRepo) IsFavorite(ctx context.Context, userID, listingID string) (bool, error) {
