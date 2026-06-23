@@ -76,7 +76,7 @@ export const CreateListing = () => {
         <label><input type="checkbox" checked={form.has_wifi}
           onChange={e => setForm({ ...form, has_wifi: e.target.checked })} /> Есть Wi-Fi</label>
         <label><input type="checkbox" checked={form.has_washer}
-          onChange={e => setForm({ ...form, has_washer: e.target.checked })} /> Есть стиральная машина</label>
+        onChange={e => setForm({ ...form, has_washer: e.target.checked })} /> Есть бытовая техника</label>
 
         <PhotoUploader photos={photos} onChange={setPhotos} />
 

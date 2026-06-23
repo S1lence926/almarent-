@@ -36,7 +36,7 @@ export const ListingDetail = () => {
   const amenities = [
     listing.has_furniture && 'Мебель',
     listing.has_wifi && 'Wi-Fi',
-    listing.has_washer && 'Стиральная машина',
+    listing.has_washer && 'Бытовая техника',
   ].filter(Boolean);
 
   return (

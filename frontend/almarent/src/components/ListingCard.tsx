@@ -59,56 +59,28 @@ export const ListingCard = ({ listing }: { listing: Listing }) => {
             <span style={{ color: 'var(--pine)', fontSize: '0.85rem', fontFamily: 'var(--font-display)' }}>AlmaRent</span>
           )}
           <span style={{
-            position: 'absolute',
-            top: '12px',
-            left: '12px',
-            background: 'rgba(28,25,23,0.75)',
-            color: '#fff',
-            fontSize: '0.7rem',
-            padding: '4px 10px',
-            borderRadius: '999px',
-            fontWeight: 500,
+            position: 'absolute', top: '12px', left: '12px',
+            background: 'rgba(28,25,23,0.75)', color: '#fff',
+            fontSize: '0.7rem', padding: '4px 10px', borderRadius: '999px', fontWeight: 500,
           }}>
             {listing.district}
           </span>
-
           {isAuthenticated && (
-            <button
-              onClick={toggleFavorite}
-              style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.9)',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1rem',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                transition: 'transform 0.1s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-            >
+            <button onClick={toggleFavorite} style={{
+              position: 'absolute', top: '10px', right: '10px',
+              width: '32px', height: '32px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1rem', boxShadow: '0 2px 6px rgba(0,0,0,0.15)', transition: 'transform 0.1s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
               {isFav ? '❤️' : '🤍'}
             </button>
           )}
         </div>
-
         <div style={{ padding: '1.1rem 1.2rem' }}>
-          <h3 style={{
-            fontSize: '1.05rem',
-            marginBottom: '0.35rem',
-            fontWeight: 600,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
+          <h3 style={{ fontSize: '1.05rem', marginBottom: '0.35rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {listing.title}
           </h3>
           <p style={{ margin: '0 0 0.7rem', color: 'var(--ink-soft)', fontSize: '0.85rem' }}>
@@ -120,7 +92,7 @@ export const ListingCard = ({ listing }: { listing: Listing }) => {
           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
             {listing.has_furniture && <Tag>Мебель</Tag>}
             {listing.has_wifi && <Tag>Wi-Fi</Tag>}
-            {listing.has_washer && <Tag>Стиралка</Tag>}
+            {listing.has_washer && <Tag>Быт. техника</Tag>}
           </div>
         </div>
       </div>
@@ -130,12 +102,8 @@ export const ListingCard = ({ listing }: { listing: Listing }) => {
 
 const Tag = ({ children }: { children: React.ReactNode }) => (
   <span style={{
-    background: 'var(--pine-light)',
-    color: 'var(--pine)',
-    fontSize: '0.72rem',
-    padding: '3px 9px',
-    borderRadius: '999px',
-    fontWeight: 500,
+    background: 'var(--pine-light)', color: 'var(--pine)',
+    fontSize: '0.72rem', padding: '3px 9px', borderRadius: '999px', fontWeight: 500,
   }}>
     {children}
   </span>
