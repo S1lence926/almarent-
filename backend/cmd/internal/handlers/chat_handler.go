@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"almarent/internal/repository"
+	"almarent/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -55,7 +56,28 @@ func (h *ChatHandler) GetMyChats(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, chats)
+	if chats == nil {
+		chats = []models.Chat{}
+	}
+
+	type ChatWithListing struct {
+		models.Chat
+		ListingTitle   string `json:"listing_title"`
+		ListingAddress string `json:"listing_address"`
+	}
+
+	result := make([]ChatWithListing, 0, len(chats))
+	for _, chat := range chats {
+		listing, err := h.listingRepo.GetByID(c.Request.Context(), chat.ListingID)
+		cwl := ChatWithListing{Chat: chat}
+		if err == nil {
+			cwl.ListingTitle = listing.Title
+			cwl.ListingAddress = listing.Address
+		}
+		result = append(result, cwl)
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *ChatHandler) GetMessages(c *gin.Context) {
