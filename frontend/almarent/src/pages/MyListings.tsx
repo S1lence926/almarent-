@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import type { Listing } from '../types';
 
 export const MyListings = () => {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [tab, setTab] = useState<'active' | 'archived'>('active');
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -44,8 +44,6 @@ export const MyListings = () => {
     tab === 'active' ? l.status === 'active' : l.status === 'archived'
   );
 
-  const isPremium = (user as any)?.is_premium;
-
   return (
     <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '2rem' }}>
       <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: '1.5rem' }}>Мои объявления</h2>
@@ -69,35 +67,6 @@ export const MyListings = () => {
           </button>
         ))}
       </div>
-
-      {/* Блок архива для не-премиум */}
-      {tab === 'archived' && !isPremium && (
-        <div style={{
-          padding: '2rem',
-          background: 'linear-gradient(135deg, #FAF7F2, #f0ebe0)',
-          borderRadius: '14px',
-          border: '1px solid var(--border)',
-          textAlign: 'center',
-          marginBottom: '1.5rem',
-        }}>
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⭐</div>
-          <h3 style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Функция доступна в Топ-аккаунте</h3>
-          <p style={{ color: 'var(--ink-soft)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-            Архивируйте объявления и восстанавливайте их в любой момент. Объявления не теряются и не удаляются.
-          </p>
-          <button style={{
-            padding: '0.75rem 1.5rem',
-            borderRadius: '999px',
-            background: 'var(--terracotta)',
-            color: '#fff',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600,
-          }}>
-            Получить Топ-аккаунт
-          </button>
-        </div>
-      )}
 
       {/* Список */}
       {loading ? (
@@ -138,22 +107,19 @@ export const MyListings = () => {
               {/* Кнопки */}
               <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                 {tab === 'active' && (
-                  <button
-                    onClick={() => isPremium ? handleArchive(l.id) : null}
-                    title={isPremium ? 'Архивировать' : 'Только для Топ-аккаунта'}
-                    style={{
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      background: isPremium ? 'var(--bg)' : '#f5f5f5',
-                      cursor: isPremium ? 'pointer' : 'not-allowed',
-                      fontSize: '0.8rem',
-                      color: isPremium ? 'var(--ink)' : 'var(--ink-soft)',
-                    }}>
-                    {isPremium ? '📦 Архив' : '🔒 Архив'}
+                  <button onClick={() => handleArchive(l.id)} style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    color: 'var(--ink)',
+                  }}>
+                    📦 Архив
                   </button>
                 )}
-                {tab === 'archived' && isPremium && (
+                {tab === 'archived' && (
                   <button onClick={() => handleRestore(l.id)} style={{
                     padding: '0.4rem 0.8rem',
                     borderRadius: '8px',
