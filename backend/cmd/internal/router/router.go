@@ -16,8 +16,8 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 
 	r.Use(func(c *gin.Context) {
 		allowedOrigins := map[string]bool{
-			"http://localhost:5173":        true,
-			"https://almarent.vercel.app":  true,
+			"http://localhost:5173":       true,
+			"https://almarent.vercel.app": true,
 		}
 		origin := c.Request.Header.Get("Origin")
 		if allowedOrigins[origin] {
@@ -58,6 +58,7 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 		listings := api.Group("/listings")
 		{
 			listings.GET("", listingHandler.GetAll)
+			listings.GET("/map", listingHandler.GetForMap)
 			listings.GET("/:id", listingHandler.GetByID)
 			listings.GET("/:id/photos", photoHandler.GetByListing)
 		}
@@ -65,9 +66,16 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 		protected := api.Group("/")
 		protected.Use(middleware.Auth(cfg.JWTSecret))
 		{
+			protected.GET("/me", authHandler.GetMe)
+
 			protected.POST("/listings", listingHandler.Create)
 			protected.PUT("/listings/:id", listingHandler.Update)
 			protected.DELETE("/listings/:id", listingHandler.Delete)
+			protected.GET("/my-listings", listingHandler.GetMyListings)
+			protected.POST("/listings/:id/archive", listingHandler.Archive)
+			protected.POST("/listings/:id/restore", listingHandler.Restore)
+			protected.DELETE("/listings/:id/hard", listingHandler.HardDelete)
+
 			protected.POST("/upload", handlers.UploadPhoto)
 			protected.POST("/listings/:id/photos", photoHandler.Add)
 

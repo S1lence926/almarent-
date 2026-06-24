@@ -22,17 +22,48 @@ export const getListing = async (id: string) => {
   return res.json();
 };
 
+export const getListingsForMap = async () => {
+  const res = await fetch(`${API}/listings/map`);
+  return res.json();
+};
+
+export const getMyListings = async (token: string) => {
+  const res = await fetch(`${API}/my-listings`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+};
+
 export const createListing = async (data: object, token: string) => {
   const res = await fetch(`${API}/listings`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to create listing');
   return res.json();
+};
+
+export const archiveListing = async (id: string, token: string) => {
+  await fetch(`${API}/listings/${id}/archive`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const restoreListing = async (id: string, token: string) => {
+  await fetch(`${API}/listings/${id}/restore`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const hardDeleteListing = async (id: string, token: string) => {
+  await fetch(`${API}/listings/${id}/hard`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
 };
 
 export const deleteListing = async (id: string, token: string) => {

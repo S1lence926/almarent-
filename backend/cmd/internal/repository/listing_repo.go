@@ -133,3 +133,62 @@ func (r *ListingRepo) Delete(ctx context.Context, id, ownerID string) error {
 	)
 	return err
 }
+// Получить объявления пользователя (все статусы)
+func (r *ListingRepo) GetByOwner(ctx context.Context, ownerID string) ([]models.Listing, error) {
+	var listings []models.Listing
+	err := r.db.SelectContext(ctx, &listings,
+		"SELECT * FROM listings WHERE owner_id = $1 AND status != 'deleted' ORDER BY created_at DESC",
+		ownerID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range listings {
+		photos, _ := r.getPhotos(ctx, listings[i].ID)
+		listings[i].Photos = photos
+	}
+	return listings, nil
+}
+
+// Архивировать объявление
+func (r *ListingRepo) Archive(ctx context.Context, id, ownerID string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE listings SET status='archived', is_active=false WHERE id=$1 AND owner_id=$2",
+		id, ownerID,
+	)
+	return err
+}
+
+// Восстановить из архива
+func (r *ListingRepo) Restore(ctx context.Context, id, ownerID string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE listings SET status='active', is_active=true WHERE id=$1 AND owner_id=$2",
+		id, ownerID,
+	)
+	return err
+}
+
+// Hard delete
+func (r *ListingRepo) HardDelete(ctx context.Context, id, ownerID string) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE listings SET status='deleted', is_active=false WHERE id=$1 AND owner_id=$2",
+		id, ownerID,
+	)
+	return err
+}
+
+// Для карты — все активные с координатами
+func (r *ListingRepo) GetForMap(ctx context.Context) ([]models.Listing, error) {
+	var listings []models.Listing
+	err := r.db.SelectContext(ctx, &listings,
+		"SELECT * FROM listings WHERE status='active' AND latitude IS NOT NULL AND longitude IS NOT NULL",
+	)
+	if err != nil {
+		return nil, err
+	}
+	for i := range listings {
+		photos, _ := r.getPhotos(ctx, listings[i].ID)
+		listings[i].Photos = photos
+	}
+	return listings, nil
+}

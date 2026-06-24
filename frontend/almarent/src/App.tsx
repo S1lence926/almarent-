@@ -10,6 +10,8 @@ import { Chat } from './pages/Chat';
 import { ChatRoom } from './pages/ChatRoom';
 import { CreateListing } from './pages/CreateListing';
 import { ListingDetail } from './pages/ListingDetail';
+import { MyListings } from './pages/MyListings';
+import { MapView } from './pages/MapView';
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
           <Route path="/chats/:id" element={<ChatRoom />} />
           <Route path="/listings/create" element={<CreateListing />} />
           <Route path="/listings/:id" element={<ListingDetail />} />
+          <Route path="/my-listings" element={<MyListings />} />
+          <Route path="/map" element={<MapView />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

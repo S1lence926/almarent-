@@ -92,3 +92,54 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }
+func (h *ListingHandler) GetMyListings(c *gin.Context) {
+	ownerID := c.GetString("user_id")
+	listings, err := h.repo.GetByOwner(c.Request.Context(), ownerID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if listings == nil {
+		listings = []models.Listing{}
+	}
+	c.JSON(http.StatusOK, listings)
+}
+
+func (h *ListingHandler) Archive(c *gin.Context) {
+	ownerID := c.GetString("user_id")
+	if err := h.repo.Archive(c.Request.Context(), c.Param("id"), ownerID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "archived"})
+}
+
+func (h *ListingHandler) Restore(c *gin.Context) {
+	ownerID := c.GetString("user_id")
+	if err := h.repo.Restore(c.Request.Context(), c.Param("id"), ownerID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "restored"})
+}
+
+func (h *ListingHandler) HardDelete(c *gin.Context) {
+	ownerID := c.GetString("user_id")
+	if err := h.repo.HardDelete(c.Request.Context(), c.Param("id"), ownerID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+}
+
+func (h *ListingHandler) GetForMap(c *gin.Context) {
+	listings, err := h.repo.GetForMap(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if listings == nil {
+		listings = []models.Listing{}
+	}
+	c.JSON(http.StatusOK, listings)
+}
