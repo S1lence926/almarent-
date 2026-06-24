@@ -1,6 +1,8 @@
 package router
 
 import (
+	"strings"
+
 	"almarent/internal/config"
 	"almarent/internal/handlers"
 	"almarent/internal/middleware"
@@ -15,12 +17,10 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		allowedOrigins := map[string]bool{
-			"http://localhost:5173":       true,
-			"https://almarent.vercel.app": true,
-		}
 		origin := c.Request.Header.Get("Origin")
-		if allowedOrigins[origin] {
+		if origin == "http://localhost:5173" ||
+			strings.HasSuffix(origin, ".vercel.app") ||
+			origin == "https://almarent.vercel.app" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		}
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
