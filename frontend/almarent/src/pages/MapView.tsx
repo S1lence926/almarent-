@@ -1,29 +1,93 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getListingsForMap } from '../api/listings';
 import type { Listing } from '../types';
 
 export const MapView = () => {
+  const mapRef = useRef<HTMLDivElement>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [selected, setSelected] = useState<Listing | null>(null);
   const [filters, setFilters] = useState({ district: '', price_max: '' });
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapInstance = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const navigate = useNavigate();
+
+  const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
 
   useEffect(() => {
     getListingsForMap().then(data => setListings(Array.isArray(data) ? data : []));
   }, []);
+
+  // Загружаем 2GIS MapGL
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://mapgl.2gis.com/api/js/v1';
+    script.onload = () => setMapLoaded(true);
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, []);
+
+  // Инициализируем карту
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || mapInstance.current) return;
+    const key = import.meta.env.VITE_2GIS_KEY;
+    const MapGL = (window as any).mapgl;
+    mapInstance.current = new MapGL.Map(mapRef.current, {
+      center: [76.8512, 43.2220],
+      zoom: 12,
+      key,
+    });
+  }, [mapLoaded]);
+
+  // Добавляем/обновляем маркеры при изменении фильтров
+  useEffect(() => {
+    if (!mapLoaded || !mapInstance.current) return;
+    const MapGL = (window as any).mapgl;
+
+    // Удаляем старые маркеры
+    markersRef.current.forEach(m => m.destroy());
+    markersRef.current = [];
+
+    const filtered = listings.filter(l => {
+      if (!l.latitude || !l.longitude) return false;
+      if (filters.district && l.district !== filters.district) return false;
+      if (filters.price_max && l.price > Number(filters.price_max)) return false;
+      return true;
+    });
+
+    filtered.forEach(l => {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div style="
+          background: #C2693E;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        ">
+          ${l.price.toLocaleString()} ₸
+        </div>
+      `;
+      el.onclick = () => setSelected(l);
+
+      const marker = new MapGL.HtmlMarker(mapInstance.current, {
+        coordinates: [l.longitude!, l.latitude!],
+        html: el.innerHTML,
+      });
+      markersRef.current.push(marker);
+    });
+  }, [listings, filters, mapLoaded]);
 
   const filtered = listings.filter(l => {
     if (filters.district && l.district !== filters.district) return false;
     if (filters.price_max && l.price > Number(filters.price_max)) return false;
     return true;
   });
-
-  const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
-
-  // Центр Алматы
-  const centerLat = 43.2220;
-  const centerLng = 76.8512;
 
   return (
     <div style={{ height: 'calc(100vh - 70px)', display: 'flex', flexDirection: 'column' }}>
@@ -32,9 +96,9 @@ export const MapView = () => {
         padding: '0.75rem 1.5rem',
         background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
-        display: 'flex', gap: '0.75rem', alignItems: 'center',
+        display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap',
       }}>
-        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Поиск на карте</span>
+        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>🗺 Поиск на карте</span>
         <select value={filters.district} onChange={e => setFilters({ ...filters, district: e.target.value })}
           style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem' }}>
           <option value="">Все районы</option>
@@ -42,85 +106,58 @@ export const MapView = () => {
         </select>
         <input type="number" placeholder="Цена до" value={filters.price_max}
           onChange={e => setFilters({ ...filters, price_max: e.target.value })}
-          style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: '1px solid var(--border)', width: '120px', fontSize: '0.85rem' }} />
-        <span style={{ color: 'var(--ink-soft)', fontSize: '0.85rem' }}>{filtered.length} объявлений</span>
+          style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: '1px solid var(--border)', width: '110px', fontSize: '0.85rem' }} />
+        <span style={{ color: 'var(--ink-soft)', fontSize: '0.82rem' }}>
+          {filtered.filter(l => l.latitude).length} на карте
+        </span>
       </div>
 
-      {/* Контент */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {/* Карта через 2GIS iframe */}
-        <iframe
-          src={`https://maps.2gis.com/2gis/api/gate/Maps/2.0/get_firm_list?country_code=kg&project=almaty&q=алматы&zoom=12&lat=${centerLat}&lng=${centerLng}`}
-          style={{ width: '100%', height: '100%', border: 'none' }}
-          title="Карта Алматы"
-        />
+      {/* Карта */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
 
-        {/* Список маркеров поверх карты */}
-        <div style={{
-          position: 'absolute', top: '1rem', right: '1rem',
-          width: '280px', maxHeight: 'calc(100% - 2rem)',
-          background: 'var(--surface)', borderRadius: '14px',
-          border: '1px solid var(--border)', overflowY: 'auto',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.85rem' }}>
-            Объявления на карте
-          </div>
-          {filtered.length === 0 ? (
-            <div style={{ padding: '1rem', color: 'var(--ink-soft)', fontSize: '0.85rem', textAlign: 'center' }}>
-              Нет объявлений с координатами.<br />
-              <span style={{ fontSize: '0.75rem' }}>Добавьте координаты при создании объявления.</span>
-            </div>
-          ) : (
-            filtered.map(l => (
-              <div key={l.id}
-                onClick={() => setSelected(selected?.id === l.id ? null : l)}
-                style={{
-                  padding: '0.75rem 1rem',
-                  borderBottom: '1px solid var(--border)',
-                  cursor: 'pointer',
-                  background: selected?.id === l.id ? 'var(--pine-light)' : 'transparent',
-                  transition: 'background 0.15s',
-                }}>
-                <div style={{ fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.2rem' }}>{l.title}</div>
-                <div style={{ color: 'var(--terracotta-dark)', fontWeight: 600, fontSize: '0.85rem' }}>
-                  {l.price.toLocaleString()} ₸/мес
-                </div>
-                <div style={{ color: 'var(--ink-soft)', fontSize: '0.75rem' }}>{l.district}</div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Превью карточки выбранного объявления */}
+        {/* Превью выбранного объявления */}
         {selected && (
           <div style={{
-            position: 'absolute', bottom: '1rem', left: '50%',
+            position: 'absolute', bottom: '1.5rem', left: '50%',
             transform: 'translateX(-50%)',
             background: 'var(--surface)', borderRadius: '14px',
             border: '1px solid var(--border)',
             boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
             padding: '1rem', width: '320px',
             display: 'flex', gap: '0.75rem', alignItems: 'center',
+            zIndex: 10,
           }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--pine-light)' }}>
-              {selected.photos?.[0] && <img src={selected.photos[0]} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+              {selected.photos?.[0] && (
+                <img src={selected.photos[0]} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              )}
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.2rem' }}>{selected.title}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selected.title}
+              </div>
               <div style={{ color: 'var(--terracotta-dark)', fontWeight: 700, fontSize: '0.95rem' }}>
                 {selected.price.toLocaleString()} ₸/мес
               </div>
               <div style={{ color: 'var(--ink-soft)', fontSize: '0.75rem' }}>{selected.district}</div>
             </div>
-            <button onClick={() => navigate(`/listings/${selected.id}`)} style={{
-              padding: '0.5rem 0.75rem', borderRadius: '8px',
-              background: 'var(--terracotta)', color: '#fff',
-              border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-              flexShrink: 0,
-            }}>
-              Открыть
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
+              <button onClick={() => navigate(`/listings/${selected.id}`)} style={{
+                padding: '0.5rem 0.75rem', borderRadius: '8px',
+                background: 'var(--terracotta)', color: '#fff',
+                border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+              }}>
+                Открыть
+              </button>
+              <button onClick={() => setSelected(null)} style={{
+                padding: '0.4rem', borderRadius: '8px',
+                border: '1px solid var(--border)', background: 'none',
+                cursor: 'pointer', fontSize: '0.75rem', color: 'var(--ink-soft)',
+              }}>
+                ✕
+              </button>
+            </div>
           </div>
         )}
       </div>
