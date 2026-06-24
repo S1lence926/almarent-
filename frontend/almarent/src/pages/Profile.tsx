@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 export const Profile = () => {
   const { user } = useAuth();
 
-  const initials = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+ const initials = user?.name?.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <div style={{ maxWidth: '600px', margin: '3rem auto', padding: '2rem' }}>
