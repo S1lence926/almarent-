@@ -97,7 +97,6 @@ export const CreateListing = () => {
           {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
 
-        {/* Адрес с геокодированием */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input placeholder="Адрес (ул. Абая 1)" value={form.address}
@@ -129,7 +128,6 @@ export const CreateListing = () => {
           )}
         </div>
 
-        {/* Кнопка показать карту */}
         <button type="button" onClick={() => setShowMap(!showMap)} style={{
           padding: '0.6rem', borderRadius: '8px',
           border: '1px dashed var(--border)', background: 'none',
@@ -139,7 +137,6 @@ export const CreateListing = () => {
           {showMap ? '🗺 Скрыть карту' : '🗺 Выбрать точку на карте'}
         </button>
 
-        {/* Карта */}
         {showMap && (
           <MapPicker
             lat={coords?.lat}

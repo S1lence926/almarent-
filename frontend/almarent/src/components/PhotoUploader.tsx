@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { uploadPhoto } from '../api/upload';
-import { useAuth } from '../context/AuthContext';
 
 interface Props {
   photos: string[];
@@ -9,13 +8,12 @@ interface Props {
 }
 
 export const PhotoUploader = ({ photos, onChange, maxPhotos = 10 }: Props) => {
-  const { token } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = async (files: FileList | null) => {
-    if (!files || !token) return;
+    if (!files) return;
     setError('');
 
     const remaining = maxPhotos - photos.length;
@@ -30,7 +28,7 @@ export const PhotoUploader = ({ photos, onChange, maxPhotos = 10 }: Props) => {
     try {
       const uploaded: string[] = [];
       for (const file of toUpload) {
-        const url = await uploadPhoto(file, token);
+        const url = await uploadPhoto(file); // <-- убрал token
         uploaded.push(url);
       }
       onChange([...photos, ...uploaded]);
