@@ -1,6 +1,5 @@
 package handlers
 
-
 import (
 	"fmt"
 	"net/http"
@@ -43,16 +42,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	user, err := h.userRepo.Create(c.Request.Context(), &models.User{
-    Name:         input.Name,
-    Email:        input.Email,
-    PasswordHash: string(hash),
-    Role:         input.Role,
-})
-if err != nil {
-    fmt.Println("REGISTER ERROR:", err)
-    c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
-    return
-}
+		Name:         input.Name,
+		Email:        input.Email,
+		PasswordHash: string(hash),
+		Role:         input.Role,
+	})
+	if err != nil {
+		fmt.Println("REGISTER ERROR:", err)
+		c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+		return
+	}
 
 	token := h.generateToken(user)
 	c.JSON(http.StatusCreated, gin.H{"token": token, "user": user})
@@ -87,11 +86,12 @@ func (h *AuthHandler) generateToken(user *models.User) string {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    string(user.Role),
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(30 * 24 * time.Hour).Unix(), // 30 дней
 	}
 	token, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(h.jwtSecret))
 	return token
 }
+
 func (h *AuthHandler) GetMe(c *gin.Context) {
 	userID := c.GetString("user_id")
 	user, err := h.userRepo.FindByID(c.Request.Context(), userID)
