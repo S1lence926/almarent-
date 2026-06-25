@@ -4,6 +4,7 @@ import { getListing } from '../api/listings';
 import { startChat } from '../api/chat';
 import type { Listing } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { ListingMap } from '../components/ListingMap';
 
 export const ListingDetail = () => {
   const { id } = useParams();

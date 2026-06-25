@@ -4,6 +4,7 @@ import { createListing } from '../api/listings';
 import { attachPhotoToListing } from '../api/upload';
 import { useAuth } from '../context/AuthContext';
 import { PhotoUploader } from '../components/PhotoUploader';
+import { MapPicker } from '../components/MapPicker';
 
 const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
 
@@ -35,6 +36,7 @@ export const CreateListing = () => {
   const [error, setError] = useState('');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [addressStatus, setAddressStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [showMap, setShowMap] = useState(false);
 
   const validateAddress = async () => {
     if (!form.address.trim() || form.address.length < 5) return;
@@ -43,6 +45,7 @@ export const CreateListing = () => {
     if (result) {
       setCoords(result);
       setAddressStatus('valid');
+      setShowMap(true);
     } else {
       setCoords(null);
       setAddressStatus('invalid');
@@ -52,10 +55,7 @@ export const CreateListing = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
-    if (!form.address.trim()) {
-      setError('Введите адрес');
-      return;
-    }
+    if (!form.address.trim()) { setError('Введите адрес'); return; }
     try {
       const listing = await createListing({
         ...form,
@@ -76,15 +76,13 @@ export const CreateListing = () => {
   };
 
   const fieldStyle: React.CSSProperties = {
-    padding: '0.75rem',
-    borderRadius: '8px',
+    padding: '0.75rem', borderRadius: '8px',
     border: '1px solid var(--border)',
-    fontFamily: 'var(--font-body)',
-    fontSize: '0.9rem',
+    fontFamily: 'var(--font-body)', fontSize: '0.9rem',
   };
 
   return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
+    <div style={{ maxWidth: '540px', margin: '3rem auto', padding: '2rem' }}>
       <h2 style={{ marginBottom: '1.5rem', fontFamily: 'var(--font-display)' }}>Новое объявление</h2>
       {error && <p style={{ color: 'var(--terracotta)', fontSize: '0.9rem' }}>{error}</p>}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -102,31 +100,26 @@ export const CreateListing = () => {
         {/* Адрес с геокодированием */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input
-              placeholder="Адрес (ул. Абая 1)"
-              value={form.address}
+            <input placeholder="Адрес (ул. Абая 1)" value={form.address}
               onChange={e => {
                 setForm({ ...form, address: e.target.value });
                 setAddressStatus('idle');
-                setCoords(null);
               }}
-              style={{ ...fieldStyle, flex: 1 }}
-            />
+              style={{ ...fieldStyle, flex: 1 }} />
             <button type="button" onClick={validateAddress}
               disabled={addressStatus === 'checking'}
               style={{
                 padding: '0.75rem 1rem', borderRadius: '8px',
                 border: '1px solid var(--border)', background: 'var(--bg)',
-                cursor: addressStatus === 'checking' ? 'wait' : 'pointer',
-                fontSize: '0.85rem', whiteSpace: 'nowrap',
+                cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap',
                 fontFamily: 'var(--font-body)',
               }}>
-              {addressStatus === 'checking' ? '⏳' : '📍 Проверить'}
+              {addressStatus === 'checking' ? '⏳' : '📍 Найти'}
             </button>
           </div>
           {addressStatus === 'valid' && (
             <span style={{ color: 'var(--pine)', fontSize: '0.8rem' }}>
-              ✅ Адрес найден — объявление появится на карте
+              ✅ Адрес найден — уточните точку на карте
             </span>
           )}
           {addressStatus === 'invalid' && (
@@ -135,6 +128,30 @@ export const CreateListing = () => {
             </span>
           )}
         </div>
+
+        {/* Кнопка показать карту */}
+        <button type="button" onClick={() => setShowMap(!showMap)} style={{
+          padding: '0.6rem', borderRadius: '8px',
+          border: '1px dashed var(--border)', background: 'none',
+          cursor: 'pointer', fontSize: '0.85rem', color: 'var(--ink-soft)',
+          fontFamily: 'var(--font-body)',
+        }}>
+          {showMap ? '🗺 Скрыть карту' : '🗺 Выбрать точку на карте'}
+        </button>
+
+        {/* Карта */}
+        {showMap && (
+          <MapPicker
+            lat={coords?.lat}
+            lng={coords?.lng}
+            onChange={(lat, lng) => setCoords({ lat, lng })}
+          />
+        )}
+        {coords && (
+          <p style={{ fontSize: '0.78rem', color: 'var(--ink-soft)', margin: 0 }}>
+            Координаты: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+          </p>
+        )}
 
         <input type="number" placeholder="Кол-во комнат" value={form.rooms}
           onChange={e => setForm({ ...form, rooms: e.target.value })} style={fieldStyle} />
