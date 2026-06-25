@@ -14,12 +14,14 @@ export const removeFavorite = async (listingId: string, token: string) => {
   });
 };
 
-export const checkFavorite = async (listingId: string, token: string): Promise<boolean> => {
+export const checkFavorite = async (listingId: string, token: string | null): Promise<boolean> => {
+  if (!token) return false; // <-- защита от null
   const res = await fetch(`${API}/listings/${listingId}/favorite`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (!res.ok) return false; // <-- защита от 401/404
   const data = await res.json();
-  return data.is_favorite;
+  return data?.is_favorite ?? false;
 };
 
 export const getMyFavorites = async (token: string) => {

@@ -72,3 +72,48 @@ export const deleteListing = async (id: string, token: string) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+// === ИЗБРАННОЕ ===
+export const addToFavorites = async (listingId: string, token: string) => {
+  const res = await fetch(`${API}/listings/${listingId}/favorite`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to add to favorites');
+  return res.json();
+};
+
+export const removeFromFavorites = async (listingId: string, token: string) => {
+  const res = await fetch(`${API}/listings/${listingId}/favorite`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to remove from favorites');
+  return res.json();
+};
+
+export const getFavorites = async (token: string) => {
+  const res = await fetch(`${API}/favorites`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.json();
+};
+
+// === ФОТО ===
+export const attachPhotoToListing = async (
+  listingId: string,
+  photoUrl: string,
+  isMain: boolean,
+  token: string
+) => {
+  const res = await fetch(`${API}/listings/${listingId}/photos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ url: photoUrl, is_main: isMain }),
+  });
+  if (!res.ok) throw new Error('Failed to attach photo');
+  return res.json();
+};
