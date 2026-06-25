@@ -61,6 +61,7 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 			listings.GET("/map", listingHandler.GetForMap)
 			listings.GET("/:id", listingHandler.GetByID)
 			listings.GET("/:id/photos", photoHandler.GetByListing)
+			listings.GET("/:id/favorite", favoriteHandler.Check) // <-- ВЫНЕС СЮДА, без auth
 		}
 
 		protected := api.Group("/")
@@ -81,7 +82,8 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 
 			protected.POST("/listings/:id/favorite", favoriteHandler.Add)
 			protected.DELETE("/listings/:id/favorite", favoriteHandler.Remove)
-			protected.GET("/listings/:id/favorite", favoriteHandler.Check)
+			// УДАЛИЛ: protected.GET("/listings/:id/favorite", favoriteHandler.Check)
+
 			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
 
 			protected.POST("/chats", chatHandler.StartChat)

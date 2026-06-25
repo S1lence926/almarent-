@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -26,6 +27,12 @@ func UploadPhoto(c *gin.Context) {
 
 	if file.Size > 5*1024*1024 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "файл больше 5 МБ"})
+		return
+	}
+
+	// Создаём папку uploads если её нет
+	if err := os.MkdirAll("uploads", os.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось создать папку"})
 		return
 	}
 

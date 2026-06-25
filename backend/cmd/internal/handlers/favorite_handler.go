@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
 type FavoriteHandler struct {
 	repo        *repository.FavoriteRepo
 	listingRepo *repository.ListingRepo
@@ -55,6 +56,13 @@ func (h *FavoriteHandler) GetMyFavorites(c *gin.Context) {
 func (h *FavoriteHandler) Check(c *gin.Context) {
 	userID := c.GetString("user_id")
 	listingID := c.Param("id")
+
+	// Если не залогинен — сразу false
+	if userID == "" {
+		c.JSON(http.StatusOK, gin.H{"is_favorite": false})
+		return
+	}
+
 	isFav, err := h.repo.IsFavorite(c.Request.Context(), userID, listingID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
