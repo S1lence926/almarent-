@@ -120,6 +120,13 @@ export const ListingDetail = () => {
               </div>
             </div>
           )}
+
+          {/* Карта */}
+          {listing.latitude && listing.longitude && (
+            <div style={{ marginTop: '2rem' }}>
+              <ListingMap lat={listing.latitude} lng={listing.longitude} />
+            </div>
+          )}
         </div>
 
         {/* Боковая панель */}

@@ -3,10 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 interface Props {
   lat: number;
   lng: number;
-  title: string;
 }
 
-export const ListingMap = ({ lat, lng, title }: Props) => {
+export const ListingMap = ({ lat, lng }: Props) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
