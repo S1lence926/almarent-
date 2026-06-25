@@ -7,6 +7,22 @@ import { PhotoUploader } from '../components/PhotoUploader';
 
 const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
 
+const geocodeAddress = async (address: string) => {
+  const query = encodeURIComponent(`Алматы, ${address}`);
+  const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=kz`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'AlmaRent/1.0 (almarent@gmail.com)' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data[0]) return null;
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
+};
+
 export const CreateListing = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -20,26 +36,15 @@ export const CreateListing = () => {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [addressStatus, setAddressStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
 
-  // Валидация адреса через 2GIS Geocoder API
-  const validateAddress = async (address: string) => {
-    if (!address || address.length < 5) return;
+  const validateAddress = async () => {
+    if (!form.address.trim() || form.address.length < 5) return;
     setAddressStatus('checking');
-    try {
-      const key = import.meta.env.VITE_2GIS_KEY;
-      const query = encodeURIComponent(`Алматы, ${address}`);
-      const res = await fetch(
-        `https://catalog.api.2gis.com/3.0/items/geocode?q=${query}&fields=items.point&key=${key}`
-      );
-      const data = await res.json();
-      if (data.result?.items?.length > 0) {
-        const point = data.result.items[0].point;
-        setCoords({ lat: point.lat, lng: point.lon });
-        setAddressStatus('valid');
-      } else {
-        setCoords(null);
-        setAddressStatus('invalid');
-      }
-    } catch {
+    const result = await geocodeAddress(form.address);
+    if (result) {
+      setCoords(result);
+      setAddressStatus('valid');
+    } else {
+      setCoords(null);
       setAddressStatus('invalid');
     }
   };
@@ -47,6 +52,10 @@ export const CreateListing = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    if (!form.address.trim()) {
+      setError('Введите адрес');
+      return;
+    }
     try {
       const listing = await createListing({
         ...form,
@@ -77,7 +86,7 @@ export const CreateListing = () => {
   return (
     <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem' }}>
       <h2 style={{ marginBottom: '1.5rem', fontFamily: 'var(--font-display)' }}>Новое объявление</h2>
-      {error && <p style={{ color: 'var(--terracotta)' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--terracotta)', fontSize: '0.9rem' }}>{error}</p>}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <input placeholder="Заголовок" value={form.title}
           onChange={e => setForm({ ...form, title: e.target.value })} style={fieldStyle} />
@@ -90,7 +99,7 @@ export const CreateListing = () => {
           {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
 
-        {/* Адрес с валидацией */}
+        {/* Адрес с геокодированием */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input
@@ -103,21 +112,16 @@ export const CreateListing = () => {
               }}
               style={{ ...fieldStyle, flex: 1 }}
             />
-            <button
-              type="button"
-              onClick={() => validateAddress(form.address)}
+            <button type="button" onClick={validateAddress}
               disabled={addressStatus === 'checking'}
               style={{
-                padding: '0.75rem 1rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'var(--bg)',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {addressStatus === 'checking' ? '...' : '📍 Проверить'}
+                padding: '0.75rem 1rem', borderRadius: '8px',
+                border: '1px solid var(--border)', background: 'var(--bg)',
+                cursor: addressStatus === 'checking' ? 'wait' : 'pointer',
+                fontSize: '0.85rem', whiteSpace: 'nowrap',
+                fontFamily: 'var(--font-body)',
+              }}>
+              {addressStatus === 'checking' ? '⏳' : '📍 Проверить'}
             </button>
           </div>
           {addressStatus === 'valid' && (
@@ -127,7 +131,7 @@ export const CreateListing = () => {
           )}
           {addressStatus === 'invalid' && (
             <span style={{ color: 'var(--terracotta)', fontSize: '0.8rem' }}>
-              ❌ Адрес не найден в Алматы — попробуйте уточнить
+              ❌ Адрес не найден — уточните название улицы
             </span>
           )}
         </div>
@@ -136,15 +140,15 @@ export const CreateListing = () => {
           onChange={e => setForm({ ...form, rooms: e.target.value })} style={fieldStyle} />
         <input type="number" placeholder="Этаж" value={form.floor}
           onChange={e => setForm({ ...form, floor: e.target.value })} style={fieldStyle} />
-        <label style={{ fontSize: '0.9rem' }}>
+        <label style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <input type="checkbox" checked={form.has_furniture}
             onChange={e => setForm({ ...form, has_furniture: e.target.checked })} /> Есть мебель
         </label>
-        <label style={{ fontSize: '0.9rem' }}>
+        <label style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <input type="checkbox" checked={form.has_wifi}
             onChange={e => setForm({ ...form, has_wifi: e.target.checked })} /> Есть Wi-Fi
         </label>
-        <label style={{ fontSize: '0.9rem' }}>
+        <label style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <input type="checkbox" checked={form.has_washer}
             onChange={e => setForm({ ...form, has_washer: e.target.checked })} /> Есть бытовая техника
         </label>
