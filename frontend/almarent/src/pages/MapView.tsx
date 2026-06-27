@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getListingsForMap } from '../api/listings';
 import type { Listing } from '../types';
@@ -9,6 +9,7 @@ export const MapView = () => {
   const [selected, setSelected] = useState<Listing | null>(null);
   const [filters, setFilters] = useState({ district: '', price_max: '' });
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const navigate = useNavigate();
@@ -19,34 +20,31 @@ export const MapView = () => {
     getListingsForMap().then(data => setListings(Array.isArray(data) ? data : []));
   }, []);
 
-  // Загружаем 2GIS MapGL
   useEffect(() => {
+    if ((window as any).mapgl) { setMapLoaded(true); return; }
     const script = document.createElement('script');
     script.src = 'https://mapgl.2gis.com/api/js/v1';
     script.onload = () => setMapLoaded(true);
     document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
   }, []);
 
-  // Инициализируем карту
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || mapInstance.current) return;
-    const key = import.meta.env.VITE_2GIS_KEY;
     const MapGL = (window as any).mapgl;
+    const key = import.meta.env.VITE_2GIS_KEY;
     mapInstance.current = new MapGL.Map(mapRef.current, {
       center: [76.8512, 43.2220],
       zoom: 12,
       key,
     });
+    mapInstance.current.on('load', () => setMapReady(true));
   }, [mapLoaded]);
 
-  // Добавляем/обновляем маркеры при изменении фильтров
-  useEffect(() => {
-    if (!mapLoaded || !mapInstance.current) return;
+  const updateMarkers = useCallback(() => {
+    if (!mapReady || !mapInstance.current) return;
     const MapGL = (window as any).mapgl;
 
-    // Удаляем старые маркеры
-    markersRef.current.forEach(m => m.destroy());
+    markersRef.current.forEach(m => { try { m.destroy(); } catch {} });
     markersRef.current = [];
 
     const filtered = listings.filter(l => {
@@ -57,41 +55,59 @@ export const MapView = () => {
     });
 
     filtered.forEach(l => {
-      const el = document.createElement('div');
-      el.innerHTML = `
-        <div style="
-          background: #C2693E;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 600;
-          white-space: nowrap;
-          cursor: pointer;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        ">
-          ${l.price.toLocaleString()} ₸
-        </div>
+      // Создаём HTML элемент маркера
+      const container = document.createElement('div');
+      container.style.cssText = `
+        background: #C2693E;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        border: 2px solid white;
+        user-select: none;
       `;
-      el.onclick = () => setSelected(l);
+      container.textContent = `${l.price.toLocaleString()} ₸`;
+      container.addEventListener('click', () => setSelected(l));
 
-      const marker = new MapGL.HtmlMarker(mapInstance.current, {
-        coordinates: [l.longitude!, l.latitude!],
-        html: el.innerHTML,
-      });
-      markersRef.current.push(marker);
+      try {
+        const marker = new MapGL.HtmlMarker(mapInstance.current, {
+          coordinates: [Number(l.longitude), Number(l.latitude)],
+          html: container,
+          anchor: 'center',
+        });
+        markersRef.current.push(marker);
+      } catch {
+        // fallback — обычный маркер если HtmlMarker не поддерживается
+        try {
+          const marker = new MapGL.Marker(mapInstance.current, {
+            coordinates: [Number(l.longitude), Number(l.latitude)],
+          });
+          marker.on('click', () => setSelected(l));
+          markersRef.current.push(marker);
+        } catch (err) {
+          console.error('Marker error:', err);
+        }
+      }
     });
-  }, [listings, filters, mapLoaded]);
+  }, [listings, filters, mapReady]);
 
-  const filtered = listings.filter(l => {
+  useEffect(() => {
+    updateMarkers();
+  }, [updateMarkers]);
+
+  const visibleCount = listings.filter(l => {
+    if (!l.latitude || !l.longitude) return false;
     if (filters.district && l.district !== filters.district) return false;
     if (filters.price_max && l.price > Number(filters.price_max)) return false;
     return true;
-  });
+  }).length;
 
   return (
     <div style={{ height: 'calc(100vh - 70px)', display: 'flex', flexDirection: 'column' }}>
-      {/* Фильтры */}
       <div style={{
         padding: '0.75rem 1.5rem',
         background: 'var(--surface)',
@@ -108,15 +124,13 @@ export const MapView = () => {
           onChange={e => setFilters({ ...filters, price_max: e.target.value })}
           style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: '1px solid var(--border)', width: '110px', fontSize: '0.85rem' }} />
         <span style={{ color: 'var(--ink-soft)', fontSize: '0.82rem' }}>
-          {filtered.filter(l => l.latitude).length} на карте
+          {visibleCount} на карте
         </span>
       </div>
 
-      {/* Карта */}
       <div style={{ flex: 1, position: 'relative' }}>
         <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
 
-        {/* Превью выбранного объявления */}
         {selected && (
           <div style={{
             position: 'absolute', bottom: '1.5rem', left: '50%',
