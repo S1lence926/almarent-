@@ -53,28 +53,34 @@ export const CreateListing = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    if (!form.address.trim()) { setError('Введите адрес'); return; }
-    try {
-      const listing = await createListing({
-        ...form,
-        price: Number(form.price),
-        rooms: Number(form.rooms),
-        floor: Number(form.floor),
-        latitude: coords?.lat,
-        longitude: coords?.lng,
-      }, token);
+  e.preventDefault();
+  if (!token) return;
+  if (!form.address.trim()) { setError('Введите адрес'); return; }
 
-      for (let i = 0; i < photos.length; i++) {
-        await attachPhotoToListing(listing.id, photos[i], i === 0, token);
-      }
-      navigate('/');
-    } catch {
-      setError('Не удалось создать объявление');
+  // Если координаты не выбраны вручную — пробуем получить автоматически
+  let finalCoords = coords;
+  if (!finalCoords && form.address.trim()) {
+    finalCoords = await geocodeAddress(form.address);
+  }
+
+  try {
+    const listing = await createListing({
+      ...form,
+      price: Number(form.price),
+      rooms: Number(form.rooms),
+      floor: Number(form.floor),
+      latitude: finalCoords?.lat,
+      longitude: finalCoords?.lng,
+    }, token);
+
+    for (let i = 0; i < photos.length; i++) {
+      await attachPhotoToListing(listing.id, photos[i], i === 0, token);
     }
-  };
-
+    navigate('/');
+  } catch {
+    setError('Не удалось создать объявление');
+  }
+};
   const fieldStyle: React.CSSProperties = {
     padding: '0.75rem', borderRadius: '8px',
     border: '1px solid var(--border)',
