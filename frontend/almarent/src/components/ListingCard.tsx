@@ -16,13 +16,19 @@ export const ListingCard = ({ listing }: { listing: Listing }) => {
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // предотвращаем переход по ссылке
     if (!token) return;
-    if (isFav) {
-      await removeFavorite(listing.id, token);
-      setIsFav(false);
-    } else {
-      await addFavorite(listing.id, token);
-      setIsFav(true);
+    
+    try {
+      if (isFav) {
+        await removeFavorite(listing.id, token);
+        setIsFav(false);
+      } else {
+        await addFavorite(listing.id, token);
+        setIsFav(true);
+      }
+    } catch (err) {
+      console.error('Favorite error:', err);
     }
   };
 
