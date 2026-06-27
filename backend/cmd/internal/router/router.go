@@ -47,50 +47,49 @@ func Setup(db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *gin.Engine {
 	chatHandler := handlers.NewChatHandler(chatRepo, listingRepo)
 	favoriteHandler := handlers.NewFavoriteHandler(favoriteRepo, listingRepo)
 
+	authMW := middleware.Auth(cfg.JWTSecret)
+
 	api := r.Group("/api")
 	{
-		auth := api.Group("/auth")
-		{
-			auth.POST("/register", authHandler.Register)
-			auth.POST("/login", authHandler.Login)
-		}
+		// Auth
+		api.POST("/auth/register", authHandler.Register)
+		api.POST("/auth/login", authHandler.Login)
 
-		listings := api.Group("/listings")
-		{
-			listings.GET("", listingHandler.GetAll)
-			listings.GET("/map", listingHandler.GetForMap)
-			listings.GET("/:id", listingHandler.GetByID)
-			listings.GET("/:id/photos", photoHandler.GetByListing)
-			listings.GET("/:id/favorite", favoriteHandler.Check) // <-- ВЫНЕС СЮДА, без auth
-		}
+		// Listings — публичные
+		api.GET("/listings", listingHandler.GetAll)
+		api.GET("/listings/map", listingHandler.GetForMap)
+		api.GET("/listings/:id", listingHandler.GetByID)
+		api.GET("/listings/:id/photos", photoHandler.GetByListing)
 
-		protected := api.Group("/")
-		protected.Use(middleware.Auth(cfg.JWTSecret))
-		{
-			protected.GET("/me", authHandler.GetMe)
+		// Favorites check — с опциональной авторизацией (обрабатывается внутри хендлера)
+		api.GET("/listings/:id/favorite", authMW, favoriteHandler.Check)
 
-			protected.POST("/listings", listingHandler.Create)
-			protected.PUT("/listings/:id", listingHandler.Update)
-			protected.DELETE("/listings/:id", listingHandler.Delete)
-			protected.GET("/my-listings", listingHandler.GetMyListings)
-			protected.POST("/listings/:id/archive", listingHandler.Archive)
-			protected.POST("/listings/:id/restore", listingHandler.Restore)
-			protected.DELETE("/listings/:id/hard", listingHandler.HardDelete)
+		// Listings — защищённые
+		api.POST("/listings", authMW, listingHandler.Create)
+		api.PUT("/listings/:id", authMW, listingHandler.Update)
+		api.DELETE("/listings/:id", authMW, listingHandler.Delete)
+		api.GET("/my-listings", authMW, listingHandler.GetMyListings)
+		api.POST("/listings/:id/archive", authMW, listingHandler.Archive)
+		api.POST("/listings/:id/restore", authMW, listingHandler.Restore)
+		api.DELETE("/listings/:id/hard", authMW, listingHandler.HardDelete)
 
-			protected.POST("/upload", handlers.UploadPhoto)
-			protected.POST("/listings/:id/photos", photoHandler.Add)
+		// Photos
+		api.POST("/upload", authMW, handlers.UploadPhoto)
+		api.POST("/listings/:id/photos", authMW, photoHandler.Add)
 
-			protected.POST("/listings/:id/favorite", favoriteHandler.Add)
-			protected.DELETE("/listings/:id/favorite", favoriteHandler.Remove)
-			// УДАЛИЛ: protected.GET("/listings/:id/favorite", favoriteHandler.Check)
+		// Favorites — защищённые
+		api.POST("/listings/:id/favorite", authMW, favoriteHandler.Add)
+		api.DELETE("/listings/:id/favorite", authMW, favoriteHandler.Remove)
+		api.GET("/favorites", authMW, favoriteHandler.GetMyFavorites)
 
-			protected.GET("/favorites", favoriteHandler.GetMyFavorites)
+		// Me
+		api.GET("/me", authMW, authHandler.GetMe)
 
-			protected.POST("/chats", chatHandler.StartChat)
-			protected.GET("/chats", chatHandler.GetMyChats)
-			protected.GET("/chats/:id/messages", chatHandler.GetMessages)
-			protected.POST("/chats/:id/messages", chatHandler.SendMessage)
-		}
+		// Chats
+		api.POST("/chats", authMW, chatHandler.StartChat)
+		api.GET("/chats", authMW, chatHandler.GetMyChats)
+		api.GET("/chats/:id/messages", authMW, chatHandler.GetMessages)
+		api.POST("/chats/:id/messages", authMW, chatHandler.SendMessage)
 	}
 
 	_ = rdb
