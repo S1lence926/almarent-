@@ -44,6 +44,7 @@ export const MapView = () => {
     if (!mapReady || !mapInstance.current) return;
     const MapGL = (window as any).mapgl;
 
+    // Удаляем старые маркеры
     markersRef.current.forEach(m => { try { m.destroy(); } catch {} });
     markersRef.current = [];
 
@@ -55,50 +56,20 @@ export const MapView = () => {
     });
 
     filtered.forEach(l => {
-      const htmlString = `
-        <div style="
-          background: #C2693E;
-          color: white;
-          padding: 4px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 600;
-          white-space: nowrap;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-          border: 2px solid white;
-          user-select: none;
-        ">${l.price.toLocaleString()} ₸</div>
-      `;
-
       try {
-        const marker = new MapGL.HtmlMarker(mapInstance.current, {
+        // Создаём обычный Marker (работает стабильно в 2GIS SDK)
+        const marker = new MapGL.Marker(mapInstance.current, {
           coordinates: [Number(l.longitude), Number(l.latitude)],
-          html: htmlString,
-          anchor: 'center',
+          label: {
+            text: `${Math.round(l.price / 1000)}K ₸`,
+            offset: [0, -10],
+          },
         });
 
-        // вешаем клик через getContainer
-        const container = marker.getContainer?.();
-        if (container) {
-          container.addEventListener('click', () => setSelected(l));
-        } else {
-          // fallback если getContainer недоступен
-          marker.on?.('click', () => setSelected(l));
-        }
-
+        marker.on('click', () => setSelected(l));
         markersRef.current.push(marker);
-      } catch {
-        // fallback — обычный маркер
-        try {
-          const marker = new MapGL.Marker(mapInstance.current, {
-            coordinates: [Number(l.longitude), Number(l.latitude)],
-          });
-          marker.on('click', () => setSelected(l));
-          markersRef.current.push(marker);
-        } catch (err) {
-          console.error('Marker error:', err);
-        }
+      } catch (err) {
+        console.error('Marker error:', err);
       }
     });
   }, [listings, filters, mapReady]);
