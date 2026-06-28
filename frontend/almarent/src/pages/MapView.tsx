@@ -55,33 +55,41 @@ export const MapView = () => {
     });
 
     filtered.forEach(l => {
-      // Создаём HTML элемент маркера
-      const container = document.createElement('div');
-      container.style.cssText = `
-        background: #C2693E;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-        white-space: nowrap;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        border: 2px solid white;
-        user-select: none;
+      const htmlString = `
+        <div style="
+          background: #C2693E;
+          color: white;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+          border: 2px solid white;
+          user-select: none;
+        ">${l.price.toLocaleString()} ₸</div>
       `;
-      container.textContent = `${l.price.toLocaleString()} ₸`;
-      container.addEventListener('click', () => setSelected(l));
 
       try {
         const marker = new MapGL.HtmlMarker(mapInstance.current, {
           coordinates: [Number(l.longitude), Number(l.latitude)],
-          html: container,
+          html: htmlString,
           anchor: 'center',
         });
+
+        // вешаем клик через getContainer
+        const container = marker.getContainer?.();
+        if (container) {
+          container.addEventListener('click', () => setSelected(l));
+        } else {
+          // fallback если getContainer недоступен
+          marker.on?.('click', () => setSelected(l));
+        }
+
         markersRef.current.push(marker);
       } catch {
-        // fallback — обычный маркер если HtmlMarker не поддерживается
+        // fallback — обычный маркер
         try {
           const marker = new MapGL.Marker(mapInstance.current, {
             coordinates: [Number(l.longitude), Number(l.latitude)],
