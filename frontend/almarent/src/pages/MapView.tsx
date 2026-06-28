@@ -1,92 +1,40 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { getListingsForMap } from '../api/listings';
 import type { Listing } from '../types';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Фикс иконок Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
 
 export const MapView = () => {
-  const mapRef = useRef<HTMLDivElement>(null);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [selected, setSelected] = useState<Listing | null>(null);
   const [filters, setFilters] = useState({ district: '', price_max: '' });
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
-  const mapInstance = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
   const navigate = useNavigate();
-
-  const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
 
   useEffect(() => {
     getListingsForMap().then(data => setListings(Array.isArray(data) ? data : []));
   }, []);
 
-  useEffect(() => {
-    if ((window as any).mapgl) { setMapLoaded(true); return; }
-    const script = document.createElement('script');
-    script.src = 'https://mapgl.2gis.com/api/js/v1';
-    script.onload = () => setMapLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current || mapInstance.current) return;
-    const MapGL = (window as any).mapgl;
-    const key = import.meta.env.VITE_2GIS_KEY;
-    mapInstance.current = new MapGL.Map(mapRef.current, {
-      center: [76.8512, 43.2220],
-      zoom: 12,
-      key,
-    });
-    mapInstance.current.on('load', () => setMapReady(true));
-  }, [mapLoaded]);
-
-  const updateMarkers = useCallback(() => {
-    if (!mapReady || !mapInstance.current) return;
-    const MapGL = (window as any).mapgl;
-
-    // Удаляем старые маркеры
-    markersRef.current.forEach(m => { try { m.destroy(); } catch {} });
-    markersRef.current = [];
-
-    const filtered = listings.filter(l => {
-      if (!l.latitude || !l.longitude) return false;
-      if (filters.district && l.district !== filters.district) return false;
-      if (filters.price_max && l.price > Number(filters.price_max)) return false;
-      return true;
-    });
-
-    filtered.forEach(l => {
-      try {
-        // Создаём обычный Marker (работает стабильно в 2GIS SDK)
-        const marker = new MapGL.Marker(mapInstance.current, {
-          coordinates: [Number(l.longitude), Number(l.latitude)],
-          label: {
-            text: `${Math.round(l.price / 1000)}K ₸`,
-            offset: [0, -10],
-          },
-        });
-
-        marker.on('click', () => setSelected(l));
-        markersRef.current.push(marker);
-      } catch (err) {
-        console.error('Marker error:', err);
-      }
-    });
-  }, [listings, filters, mapReady]);
-
-  useEffect(() => {
-    updateMarkers();
-  }, [updateMarkers]);
-
-  const visibleCount = listings.filter(l => {
+  const filtered = listings.filter(l => {
     if (!l.latitude || !l.longitude) return false;
     if (filters.district && l.district !== filters.district) return false;
     if (filters.price_max && l.price > Number(filters.price_max)) return false;
     return true;
-  }).length;
+  });
 
   return (
     <div style={{ height: 'calc(100vh - 70px)', display: 'flex', flexDirection: 'column' }}>
+      {/* Фильтры */}
       <div style={{
         padding: '0.75rem 1.5rem',
         background: 'var(--surface)',
@@ -103,56 +51,49 @@ export const MapView = () => {
           onChange={e => setFilters({ ...filters, price_max: e.target.value })}
           style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: '1px solid var(--border)', width: '110px', fontSize: '0.85rem' }} />
         <span style={{ color: 'var(--ink-soft)', fontSize: '0.82rem' }}>
-          {visibleCount} на карте
+          {filtered.length} на карте
         </span>
       </div>
 
-      <div style={{ flex: 1, position: 'relative' }}>
-        <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
-
-        {selected && (
-          <div style={{
-            position: 'absolute', bottom: '1.5rem', left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'var(--surface)', borderRadius: '14px',
-            border: '1px solid var(--border)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            padding: '1rem', width: '320px',
-            display: 'flex', gap: '0.75rem', alignItems: 'center',
-            zIndex: 10,
-          }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: 'var(--pine-light)' }}>
-              {selected.photos?.[0] && (
-                <img src={selected.photos[0]} alt={selected.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              )}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selected.title}
-              </div>
-              <div style={{ color: 'var(--terracotta-dark)', fontWeight: 700, fontSize: '0.95rem' }}>
-                {selected.price.toLocaleString()} ₸/мес
-              </div>
-              <div style={{ color: 'var(--ink-soft)', fontSize: '0.75rem' }}>{selected.district}</div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
-              <button onClick={() => navigate(`/listings/${selected.id}`)} style={{
-                padding: '0.5rem 0.75rem', borderRadius: '8px',
-                background: 'var(--terracotta)', color: '#fff',
-                border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-              }}>
-                Открыть
-              </button>
-              <button onClick={() => setSelected(null)} style={{
-                padding: '0.4rem', borderRadius: '8px',
-                border: '1px solid var(--border)', background: 'none',
-                cursor: 'pointer', fontSize: '0.75rem', color: 'var(--ink-soft)',
-              }}>
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
+      {/* Карта */}
+      <div style={{ flex: 1 }}>
+        <MapContainer
+          center={[43.2220, 76.8512]}
+          zoom={12}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; OpenStreetMap contributors'
+          />
+          {filtered.map(l => (
+            <Marker key={l.id} position={[Number(l.latitude), Number(l.longitude)]}>
+              <Popup>
+                <div style={{ minWidth: '200px' }}>
+                  {l.photos?.[0] && (
+                    <img src={l.photos[0]} alt={l.title}
+                      style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.5rem' }} />
+                  )}
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{l.title}</div>
+                  <div style={{ color: '#C2693E', fontWeight: 700, marginBottom: '0.25rem' }}>
+                    {l.price.toLocaleString()} ₸/мес
+                  </div>
+                  <div style={{ color: '#666', fontSize: '0.8rem', marginBottom: '0.5rem' }}>{l.district}</div>
+                  <button
+                    onClick={() => navigate(`/listings/${l.id}`)}
+                    style={{
+                      width: '100%', padding: '0.4rem',
+                      background: '#C2693E', color: '#fff',
+                      border: 'none', borderRadius: '6px',
+                      cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                    }}>
+                    Подробнее
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
       </div>
     </div>
   );
