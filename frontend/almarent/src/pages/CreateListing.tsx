@@ -9,7 +9,7 @@ import { MapPicker } from '../components/MapPicker';
 const DISTRICTS = ['Есіл', 'Алматы', 'Бостандық', 'Медеу', 'Наурызбай', 'Турксіб', 'Жетісу', 'Алатау'];
 
 const geocodeAddress = async (address: string) => {
-  const query = encodeURIComponent(`Алматы, ${address}`);
+  const query = encodeURIComponent(`Алматы, ${address}, Казахстан`);
   const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=kz`;
   try {
     const res = await fetch(url, {
@@ -17,9 +17,11 @@ const geocodeAddress = async (address: string) => {
     });
     if (!res.ok) return null;
     const data = await res.json();
+    console.log('Geocode result:', data);
     if (!data[0]) return null;
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-  } catch {
+  } catch (e) {
+    console.error('Geocode error:', e);
     return null;
   }
 };
